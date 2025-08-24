@@ -1,0 +1,17 @@
+name: "jitu"
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'feature/**'
+      - 'hotfix'
+
+  jobs:
+   terraformInit: 
+   name: terraformInit
+   runs-on: jitu
+   steps:
+   - name: jitu
+   - run: echo Hello world!
+   
