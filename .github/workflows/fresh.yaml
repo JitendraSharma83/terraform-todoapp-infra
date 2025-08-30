@@ -1,17 +1,32 @@
-name: "jitu"
+name: "Terraform Init Pipeline"
 
 on:
   push:
     branches:
-      - 'main'
-      - 'feature/**'
-      - 'hotfix'
+      - main
+      - feature/**
+      - hotfix
 
-  jobs:
-    terraformInit: 
-    name: terraformInit
+jobs:
+  terraformInit:
+    name: Terraform Init
     runs-on: self-hosted
-     steps:
-     - name: jitu
-     - run: echo Hello world!
-   
+
+    steps:
+      # Step 1: Checkout repo code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Install Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 4.42.0   # yaha apna required version daal sakta hai
+
+      # Step 3: Initialize Terraform
+      - name: Terraform Init
+        run: terraform init
+
+      # Step 4: Validate Terraform
+      - name: Terraform Validate
+        run: terraform validate
