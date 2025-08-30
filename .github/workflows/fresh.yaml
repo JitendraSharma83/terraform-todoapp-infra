@@ -8,10 +8,10 @@ on:
       - 'hotfix'
 
   jobs:
-   terraformInit: 
-   name: terraformInit
-   runs-on: jitu
-   steps:
-   - name: jitu
-   - run: echo Hello world!
+    terraformInit: 
+    name: terraformInit
+    runs-on: self-hosted
+     steps:
+     - name: jitu
+     - run: echo Hello world!
    
