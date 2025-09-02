@@ -22,11 +22,6 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_SECRET_ID }}
 
-      # Step 2: Install Terraform
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.8.5   # yaha apna required version daal sakta hai
 
       # Step 3: Initialize Terraform
       - name: Terraform Init
