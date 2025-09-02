@@ -30,3 +30,12 @@ jobs:
       # Step 4: Validate Terraform
       - name: Terraform Validate
         run: terraform validate
+
+      # Step 5: Terraform Plan
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      # Step 6: Terraform Apply (auto approve)
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main'   # sirf main branch pe apply hoga
+        run: terraform apply -auto-approve tfplan
