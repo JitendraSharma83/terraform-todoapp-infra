@@ -17,11 +17,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Install Terraform
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+      - name: Azure Login
+        uses: azure/login@v2
         with:
-          terraform_version: 1.8.5   # yaha apna required version daal sakta hai
+          creds: ${{ secrets.AZURE_SECRET_ID }}
+
 
       # Step 3: Initialize Terraform
       - name: Terraform Init
