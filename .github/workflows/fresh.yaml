@@ -9,7 +9,7 @@ on:
 
 jobs:
   feature:
-    if: github.ref == 'refs/heads/feature'
+    if: startsWith(github.ref, 'refs/heads/feature')
     runs-on: self-hosted
     steps:
       # Step 1: Checkout repo
@@ -24,7 +24,7 @@ jobs:
 
       # Step 3: Terraform Init (dev backend)
       - name: Terraform Init
-        run: terraform init -backend-config="environment/dev/terraform.tfvars"
+        run: terraform init -backend-config="environment/dev/backend.tfvars"
 
       # Step 4: Terraform Plan
       - name: Terraform Plan (Feature)
