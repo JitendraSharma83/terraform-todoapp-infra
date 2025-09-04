@@ -1,4 +1,4 @@
-name: "Terraform Multi-Stage Pipeline"
+name: "Terraform Multi-job Pipeline"
 
 on:
   workflow_dispatch:  # manual trigger for full run
