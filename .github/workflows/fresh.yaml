@@ -3,8 +3,8 @@ name: "Terraform Multi-Stage Pipeline"
 on:
   push:
     branches:
-      - feature/**
-      - qa/**
+      - feature
+      - qa
       - main
 
 jobs:
