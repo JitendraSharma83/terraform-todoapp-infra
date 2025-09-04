@@ -9,7 +9,7 @@ on:
 
 jobs:
   dev:
-    if: startsWith(github.ref, 'refs/heads/feature/dev')
+    if: startsWith(github.ref, 'refs/heads/main')
     runs-on: self-hosted
     defaults:
       run:
@@ -37,7 +37,7 @@ jobs:
   # =======================
   qa:
     needs: dev
-    if: startsWith(github.ref, 'refs/heads/feature/dev')
+    if: startsWith(github.ref, 'refs/heads/main')
     runs-on: self-hosted
     defaults:
       run:
@@ -80,7 +80,7 @@ jobs:
   # =======================
   prod:
     needs: qa
-    if: github.ref == 'refs/heads/feature/dev'
+    if: github.ref == 'refs/heads/main'
     runs-on: self-hosted
     defaults:
       run:
