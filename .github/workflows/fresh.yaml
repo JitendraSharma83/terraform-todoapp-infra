@@ -1,41 +1,38 @@
-name: "Terraform Init Pipeline"
+name: "Terraform Multi-Stage Pipeline"
 
 on:
   push:
     branches:
+      - feature
+      - qa
       - main
-      - feature/**
-      - hotfix
 
 jobs:
-  terraformInit:
-    name: Terraform Init
+  feature:
+    if: github.ref == 'refs/heads/feature'
     runs-on: self-hosted
-
     steps:
-      # Step 1: Checkout repo code
+      # Step 1: Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # Step 2: Azure Login (using secrets)
       - name: Azure Login
-        uses: azure/login@v2
+        uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_SECRET_ID }}
 
-
-      # Step 3: Initialize Terraform
+      # Step 3: Terraform Init (dev backend)
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -backend-config="environment/dev/backend.tfvars"
 
-      # Step 4: Validate Terraform
-      - name: Terraform Validate
-        run: terraform validate
+      # Step 4: Terraform Plan
+      - name: Terraform Plan (Feature)
+        run: terraform plan -var-file="environment/dev/terraform.tfvars"
 
-      # Step 5: Terraform Plan
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan
 
-      # Step 6: Terraform Apply (auto approve)
-      - name: Terraform Apply
-        if: github.ref == 'refs/heads/main'   # sirf main branch pe apply hoga
-        run: terraform apply -auto-approve tfplan
+      
+
+      
+     
+
