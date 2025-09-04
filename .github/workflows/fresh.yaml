@@ -44,7 +44,7 @@ jobs:
   # QA/Stage → DevSecOps + Terraform
   # =======================
   qa:
-    needs: dev
+    # needs: dev
     runs-on: self-hosted
     defaults:
       run:
