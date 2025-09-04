@@ -36,6 +36,7 @@ jobs:
   # QA Branch → Stage
   # =======================
   qa:
+    needs: dev
     if: startsWith(github.ref, 'refs/heads/qa')
     runs-on: self-hosted
     defaults:
@@ -78,6 +79,7 @@ jobs:
   # Main Branch → Prod
   # =======================
   prod:
+    needs: qa
     if: github.ref == 'refs/heads/main'
     runs-on: self-hosted
     defaults:
