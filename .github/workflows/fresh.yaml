@@ -1,41 +1,112 @@
-name: "Terraform Init Pipeline"
+name: "Terraform Multi-Stage Pipeline"
 
 on:
   push:
     branches:
+      - feature/dev
+      - qa
       - main
-      - feature/**
-      - hotfix
 
 jobs:
-  terraformInit:
-    name: Terraform Init
+  dev:
+    if: startsWith(github.ref, 'refs/heads/feature/dev')
     runs-on: self-hosted
-
+    defaults:
+      run:
+        working-directory: environment/dev
     steps:
-      # Step 1: Checkout repo code
+      # Step 1: Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Azure Login (using secrets)
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_SECRET_ID }}
+
+      # Step 3: Terraform Init (dev backend)
+      - name: Terraform Init
+        run: terraform init 
+
+      # Step 4: Terraform Plan
+      - name: Terraform Plan (Feature)
+        run: terraform plan -var-file="terraform.tfvars"
+  # =======================
+  # QA Branch → Stage
+  # =======================
+  qa:
+    needs: dev
+    if: startsWith(github.ref, 'refs/heads/qa')
+    runs-on: self-hosted
+    defaults:
+      run:
+        working-directory: environment/qa
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Azure Login
-        uses: azure/login@v2
+        uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_SECRET_ID }}
 
+      # --------------------
+      # DevSecOps Checks
+      # --------------------
+      - name: Install TFLint
+        run: |
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+      - name: Run TFLint
+        run: tflint
 
-      # Step 3: Initialize Terraform
+      - name: Install TFSEC
+        run: |
+          curl -sSL https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+      - name: Run TFSEC
+        run: tfsec .
+
+      # --------------------
+      # Terraform Steps
+      # --------------------
       - name: Terraform Init
         run: terraform init
 
-      # Step 4: Validate Terraform
-      - name: Terraform Validate
-        run: terraform validate
-
-      # Step 5: Terraform Plan
       - name: Terraform Plan
-        run: terraform plan -out=tfplan
+        run: terraform plan -var-file="terraform.tfvars"
 
-      # Step 6: Terraform Apply (auto approve)
-      - name: Terraform Apply
-        if: github.ref == 'refs/heads/main'   # sirf main branch pe apply hoga
-        run: terraform apply -auto-approve tfplan
+  # =======================
+  # Main Branch → Prod
+  # =======================
+  prod:
+    needs: qa
+    if: github.ref == 'refs/heads/main'
+    runs-on: self-hosted
+    defaults:
+      run:
+        working-directory: environment/prod
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_SECRET_ID }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan -var-file="terraform.tfvars"
+
+      # Manual approval recommended for prod apply
+      - name: Terraform Apply (Prod)
+        run: terraform apply -var-file="terraform.tfvars"
+
+
+      
+
+      
+     
+
