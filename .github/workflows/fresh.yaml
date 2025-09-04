@@ -36,6 +36,10 @@ jobs:
         shell: powershell
         run: terraform plan -var-file="terraform.tfvars"
 
+      - name: Terraform Apply
+        shell: powershell
+        run: terraform apply -var-file="terraform.tfvars" -auto-approve
+
   # =======================
   # QA/Stage → DevSecOps + Terraform
   # =======================
@@ -57,20 +61,23 @@ jobs:
           creds: ${{ secrets.AZURE_SECRET_ID }}
 
       # ---------- DevSecOps Checks ----------
-      - name: Install TFLint
+      - name: Install TFLint (portable)
         shell: powershell
-        run: choco install tflint -y
+        run: |
+          Invoke-WebRequest -Uri https://github.com/terraform-linters/tflint/releases/latest/download/tflint_windows_amd64.zip -OutFile tflint.zip
+          Expand-Archive tflint.zip -DestinationPath $env:GITHUB_WORKSPACE\tflint
+          $env:PATH += ";$env:GITHUB_WORKSPACE\tflint"
 
       - name: Run TFLint
         shell: powershell
         run: tflint
 
-      - name: Install TFSEC
+      - name: Install TFSEC (portable)
         shell: powershell
         run: |
           Invoke-WebRequest -Uri https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-windows-amd64.zip -OutFile tfsec.zip
-          Expand-Archive tfsec.zip -DestinationPath $env:ProgramFiles\tfsec
-          $env:PATH += ";$env:ProgramFiles\tfsec"
+          Expand-Archive tfsec.zip -DestinationPath $env:GITHUB_WORKSPACE\tfsec
+          $env:PATH += ";$env:GITHUB_WORKSPACE\tfsec"
 
       - name: Run TFSEC
         shell: powershell
