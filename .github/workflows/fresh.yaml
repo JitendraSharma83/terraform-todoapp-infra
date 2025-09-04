@@ -9,20 +9,77 @@ on:
 
 jobs:
   feature:
-    if: startsWith(github.ref, 'refs/heads/feature/')
-    runs-on: self-hosted
+    if: github.ref == 'refs/heads/feature'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.8.5
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+      - name: Terraform Init
+        run: terraform init -backend-config="environment/dev/backend.tfvars"
+
+      - name: Terraform Plan (Feature)
+        run: terraform plan -var-file="environment/dev/terraform.tfvars"
+
+  qa:
+    if: github.ref == 'refs/heads/qa'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.8.5
       - name: Azure Login
-        uses: Azure/login@v2.3.0
+        uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_SECRET_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
       - name: Terraform Init
-        run: terraform init -backend-config="environment/dev/backend.tfvars"
-      - name: Terraform Plan (Feature)
-        run: terraform plan -var-file="environment/dev/terraform.tfvars"
+        run: terraform init -backend-config="environment/qa/backend.tfvars"
+      - name: Terraform Plan + Apply (QA)
+        run: |
+          terraform plan -var-file="environment/qa/terraform.tfvars" -out=tfplan
+          terraform apply -auto-approve tfplan
+
+  prod:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.8.5
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+      - name: Terraform Init
+        run: terraform init -backend-config="environment/prod/backend.tfvars"
+      - name: Terraform Plan (Prod)
+        run: terraform plan -var-file="environment/prod/terraform.tfvars" -out=tfplan
+      - name: Terraform Apply (Prod - needs approval)
+        if: always()
+        run: terraform apply tfplan
+
       
      
 
