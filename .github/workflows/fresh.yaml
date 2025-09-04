@@ -1,6 +1,7 @@
 name: "Terraform Multi-Stage Pipeline"
 
 on:
+  workflow_dispatch:  # manual trigger for full sequential run
   push:
     branches:
       - feature/dev
@@ -8,86 +9,104 @@ on:
       - main
 
 jobs:
+  # =======================
+  # Feature/Dev → Dev
+  # =======================
   dev:
-    if: startsWith(github.ref, 'refs/heads/main')
     runs-on: self-hosted
     defaults:
       run:
         working-directory: environment/dev
     steps:
-      # Step 1: Checkout repo
-      - name: Checkout repository
+      - name: Checkout feature/dev
         uses: actions/checkout@v3
+        with:
+          ref: feature/dev
 
-      # Step 2: Azure Login (using secrets)
       - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_SECRET_ID }}
 
-      # Step 3: Terraform Init (dev backend)
       - name: Terraform Init
-        run: terraform init 
+        shell: pwsh
+        run: terraform init
 
-      # Step 4: Terraform Plan
-      - name: Terraform Plan (Feature)
+      - name: Terraform Plan
+        shell: pwsh
         run: terraform plan -var-file="terraform.tfvars"
+
+      - name: Terraform Apply
+        shell: pwsh
+        run: terraform apply -var-file="terraform.tfvars" -auto-approve
+
   # =======================
-  # QA Branch → Stage
+  # QA/Stage → DevSecOps + Terraform
   # =======================
   qa:
     needs: dev
-    if: startsWith(github.ref, 'refs/heads/main')
     runs-on: self-hosted
     defaults:
       run:
         working-directory: environment/qa
     steps:
-      - name: Checkout repository
+      - name: Checkout qa branch
         uses: actions/checkout@v3
+        with:
+          ref: qa
 
       - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_SECRET_ID }}
 
-      # --------------------
-      # DevSecOps Checks
-      # --------------------
+      # ---------- DevSecOps Checks ----------
       - name: Install TFLint
-        run: |
-          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+        shell: pwsh
+        run: choco install tflint -y
+
       - name: Run TFLint
+        shell: pwsh
         run: tflint
 
       - name: Install TFSEC
+        shell: pwsh
         run: |
-          curl -sSL https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+          Invoke-WebRequest -Uri https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-windows-amd64.zip -OutFile tfsec.zip
+          Expand-Archive tfsec.zip -DestinationPath $env:ProgramFiles\tfsec
+          $env:PATH += ";$env:ProgramFiles\tfsec"
+
       - name: Run TFSEC
+        shell: pwsh
         run: tfsec .
 
-      # --------------------
-      # Terraform Steps
-      # --------------------
+      # ---------- Terraform ----------
       - name: Terraform Init
+        shell: pwsh
         run: terraform init
 
       - name: Terraform Plan
+        shell: pwsh
         run: terraform plan -var-file="terraform.tfvars"
 
+      - name: Terraform Apply
+        shell: pwsh
+        run: terraform apply -var-file="terraform.tfvars" -auto-approve
+
   # =======================
-  # Main Branch → Prod
+  # Main/Prod → Terraform Apply
   # =======================
   prod:
     needs: qa
-    if: github.ref == 'refs/heads/main'
     runs-on: self-hosted
     defaults:
       run:
         working-directory: environment/prod
     steps:
-      - name: Checkout repository
+      - name: Checkout main branch
         uses: actions/checkout@v3
+        with:
+          ref: main
 
       - name: Azure Login
         uses: azure/login@v1
@@ -95,18 +114,13 @@ jobs:
           creds: ${{ secrets.AZURE_SECRET_ID }}
 
       - name: Terraform Init
+        shell: pwsh
         run: terraform init
 
       - name: Terraform Plan
+        shell: pwsh
         run: terraform plan -var-file="terraform.tfvars"
 
-      # Manual approval recommended for prod apply
       - name: Terraform Apply (Prod)
-        run: terraform apply -var-file="terraform.tfvars"
-
-
-      
-
-      
-     
-
+        shell: pwsh
+        run: terraform apply -var-file="terraform.tfvars" -auto-approve
