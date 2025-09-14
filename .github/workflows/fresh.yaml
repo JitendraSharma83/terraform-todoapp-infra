@@ -44,11 +44,11 @@ jobs:
   # QA/Stage → DevSecOps + Terraform
   # =======================
   qa:
-   runs-on: self-hosted
-   defaults:
+  runs-on: self-hosted
+  defaults:
     run:
       working-directory: environment/qa
-   steps:
+  steps:
     - name: Checkout qa branch
       uses: actions/checkout@v3
       with:
@@ -60,25 +60,19 @@ jobs:
         creds: ${{ secrets.AZURE_SECRET_ID }}
 
     # ---------- DevSecOps Checks ----------
-    - name: Add TFLint & Tfsec to PATH
-      shell: powershell
-      run: |
-        echo "C:\tflint" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        echo "C:\DevOpsinsider\part-1\driver\tflint_windows_amd64" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
     - name: Verify DevSecOps Tools
       shell: powershell
       run: |
-        tflint --version
-        tfsec --version
+        C:\tflint\tflint.exe --version
+        C:\DevOpsinsider\part-1\driver\tflint_windows_amd64\tfsec.exe --version
 
     - name: Run TFLint
       shell: powershell
-      run: tflint .
+      run: C:\tflint\tflint.exe .
 
     - name: Run TFSEC
       shell: powershell
-      run: tfsec .
+      run: C:\DevOpsinsider\part-1\driver\tflint_windows_amd64\tfsec.exe .
 
     # ---------- Terraform ----------
     - name: Terraform Init
@@ -92,6 +86,7 @@ jobs:
     - name: Terraform Apply
       shell: powershell
       run: terraform apply -var-file="terraform.tfvars" -auto-approve
+
 
 
   # =======================
