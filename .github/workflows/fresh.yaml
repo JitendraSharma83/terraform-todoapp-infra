@@ -43,59 +43,61 @@ jobs:
   # =======================
   # QA/Stage → DevSecOps + Terraform
   # =======================
-  qa:
-    # needs: dev
-    runs-on: self-hosted
-    defaults:
-      run:
-        working-directory: environment/qa
-    steps:
-      - name: Checkout qa branch
-        uses: actions/checkout@v3
-        with:
+   qa:
+     runs-on: self-hosted
+     defaults:
+     run:
+      working-directory: environment/qa
+      steps:
+       - name: Checkout qa branch
+         uses: actions/checkout@v3
+         with:
           ref: qa
 
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_SECRET_ID }}
+       - name: Azure Login
+         uses: azure/login@v1
+         with:
+           creds: ${{ secrets.AZURE_SECRET_ID }}
 
-      # ---------- DevSecOps Checks ----------
-      - name: Add TFLint to PATH
-        run: echo "C:\tflint" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+    # ---------- DevSecOps Checks ----------
+       - name: Add TFLint & Tfsec to PATH
+         shell: powershell
+         run: |
+           echo "C:\tflint" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+           echo "C:\DevOpsinsider\part-1\driver\tflint_windows_amd64" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Run TFLint
-        run: tflint --version
+       - name: Verify DevSecOps Tools
+         shell: powershell
+         run: |
+           tflint --version
+           tfsec --version
 
+       - name: Run TFLint
+         shell: powershell
+         run: tflint .
 
-      - name: Install TFSEC (portable)
-        shell: powershell
-        run: |
-          Invoke-WebRequest -Uri https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-windows-amd64.zip -OutFile tfsec.zip
-          Expand-Archive tfsec.zip -DestinationPath $env:GITHUB_WORKSPACE\tfsec
-          $env:PATH += ";$env:GITHUB_WORKSPACE\tfsec"
+       - name: Run TFSEC
+         shell: powershell
+         run: tfsec .
 
-      - name: Run TFSEC
-        shell: powershell
-        run: tfsec .
+    # ---------- Terraform ----------
+       - name: Terraform Init
+         shell: powershell
+         run: terraform init
 
-      # ---------- Terraform ----------
-      - name: Terraform Init
-        shell: powershell
-        run: terraform init
+       - name: Terraform Plan
+         shell: powershell
+         run: terraform plan -var-file="terraform.tfvars"
 
-      - name: Terraform Plan
-        shell: powershell
-        run: terraform plan -var-file="terraform.tfvars"
+       - name: Terraform Apply
+         shell: powershell
+         run: terraform apply -var-file="terraform.tfvars" -auto-approve
 
-      - name: Terraform Apply
-        shell: powershell
-        run: terraform apply -var-file="terraform.tfvars" -auto-approve
 
   # =======================
   # Main/Prod → Terraform Apply
   # =======================
-  prod:
+   prod:
     needs: qa
     runs-on: self-hosted
     defaults:
